@@ -1,0 +1,16 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow public read/write to settings & post_rules collections for single-user dashboard
+    match /settings/{document=**} {
+      allow read, write: if true;
+    }
+    match /post_rules/{document=**} {
+      allow read, write: if true;
+    }
+    // Allow public read and create to logs collection for dashboard display
+    match /logs/{document=**} {
+      allow read, create, update: if true;
+    }
+  }
+}

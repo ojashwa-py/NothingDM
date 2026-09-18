@@ -1,0 +1,27 @@
+{
+  "name": "instagram-ai-automation",
+  "version": "1.0.0",
+  "description": "Private Instagram Comment-to-DM AI Automation",
+  "main": "functions/index.js",
+  "scripts": {
+    "start": "node functions/index.js",
+    "serve": "firebase serve --only hosting",
+    "deploy": "firebase deploy --only hosting,firestore"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.14.0",
+    "axios": "^1.6.8",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "firebase-admin": "^12.1.0"
+  },
+  "keywords": [
+    "instagram",
+    "ai",
+    "automation",
+    "firebase",
+    "render"
+  ],
+  "license": "ISC"
+}

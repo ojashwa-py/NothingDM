@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Local env files
+.env
+.env.local
+.env.*.local
+
+# Firebase
+.firebase/
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
+
+# OS / Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

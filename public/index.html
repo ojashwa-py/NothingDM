@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>InstaAI Automation Dashboard | Private Comment-to-DM Engine</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- Firebase App & Firestore Compatibility SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+  
+  <div class="app-container">
+    
+    <!-- Top Navbar -->
+    <header class="navbar glass-card">
+      <div class="brand">
+        <div class="brand-icon">
+          <i class="fa-brands fa-instagram"></i>
+        </div>
+        <div class="brand-text">
+          <h1>InstaAI <span>Automation</span></h1>
+          <p class="subtitle">Private AI Comment-to-DM Engine</p>
+        </div>
+      </div>
+      
+      <div class="navbar-actions">
+        <!-- Automation Status Pill -->
+        <div class="status-pill" id="status-pill">
+          <span class="status-dot"></span>
+          <span class="status-text" id="status-text">Connecting...</span>
+        </div>
+
+        <!-- Master Power Switch -->
+        <label class="toggle-switch">
+          <input type="checkbox" id="master-toggle" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+    </header>
+
+    <!-- Metrics Cards Grid -->
+    <section class="metrics-grid">
+      <div class="metric-card glass-card">
+        <div class="metric-header">
+          <span>Total Comments</span>
+          <div class="metric-icon blue"><i class="fa-solid fa-comments"></i></div>
+        </div>
+        <div class="metric-value" id="metric-total">0</div>
+        <div class="metric-foot"><i class="fa-solid fa-bolt"></i> Live Ingested</div>
+      </div>
+
+      <div class="metric-card glass-card">
+        <div class="metric-header">
+          <span>DMs Sent</span>
+          <div class="metric-icon green"><i class="fa-solid fa-paper-plane"></i></div>
+        </div>
+        <div class="metric-value" id="metric-dms">0</div>
+        <div class="metric-foot"><i class="fa-solid fa-circle-check"></i> Successful DMs</div>
+      </div>
+
+      <div class="metric-card glass-card">
+        <div class="metric-header">
+          <span>AI Match Rate</span>
+          <div class="metric-icon purple"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+        </div>
+        <div class="metric-value" id="metric-match">0%</div>
+        <div class="metric-foot"><i class="fa-solid fa-brain"></i> Gemini Intent Hits</div>
+      </div>
+
+      <div class="metric-card glass-card">
+        <div class="metric-header">
+          <span>Errors / Skipped</span>
+          <div class="metric-icon orange"><i class="fa-solid fa-triangle-exclamation"></i></div>
+        </div>
+        <div class="metric-value" id="metric-errors">0</div>
+        <div class="metric-foot"><i class="fa-solid fa-shield-halved"></i> Failures / Ignored</div>
+      </div>
+    </section>
+
+    <!-- Quick Automation Presets Bar -->
+    <section class="presets-section glass-card">
+      <div class="preset-header">
+        <div class="section-title" style="margin-bottom: 0;">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          <h2>1-Click Automation Presets</h2>
+        </div>
+        <small class="help-text">Click any preset to instantly apply pre-configured rules & templates</small>
+      </div>
+
+      <div class="preset-grid">
+        <button class="preset-btn" data-preset="ebook">
+          <i class="fa-solid fa-book-bookmark"></i>
+          <div class="preset-info">
+            <span>E-Book / PDF Lead Magnet</span>
+            <small>Triggers on "PDF", "book", "link"</small>
+          </div>
+        </button>
+
+        <button class="preset-btn" data-preset="course">
+          <i class="fa-solid fa-graduation-cap"></i>
+          <div class="preset-info">
+            <span>Course / Webinar Invite</span>
+            <small>Triggers on pricing & join requests</small>
+          </div>
+        </button>
+
+        <button class="preset-btn" data-preset="emoji">
+          <i class="fa-solid fa-fire"></i>
+          <div class="preset-info">
+            <span>Viral Emoji Blast (🔥)</span>
+            <small>Triggers on 🔥, 🚀, or ❤️ emojis</small>
+          </div>
+        </button>
+
+        <button class="preset-btn" data-preset="all">
+          <i class="fa-solid fa-comments"></i>
+          <div class="preset-info">
+            <span>Auto-DM Everyone</span>
+            <small>Sends DM to every commenter</small>
+          </div>
+        </button>
+      </div>
+    </section>
+
+    <!-- Media Gallery: Select Specific Reel or Post -->
+    <section class="media-gallery-section glass-card">
+      <div class="media-gallery-header">
+        <div class="section-title" style="margin-bottom: 0;">
+          <i class="fa-brands fa-instagram"></i>
+          <h2>Target Specific Reel or Post</h2>
+        </div>
+        
+        <div class="gallery-actions">
+          <span class="active-target-badge" id="active-target-badge">
+            <i class="fa-solid fa-globe"></i> Active Target: <strong>All Posts (Global)</strong>
+          </span>
+          <button class="btn btn-secondary btn-sm" id="fetch-media-btn">
+            <i class="fa-solid fa-arrows-rotate"></i> Fetch My Reels & Posts
+          </button>
+        </div>
+      </div>
+
+      <div class="media-grid" id="media-grid">
+        <div class="media-card active-target" id="global-target-card" data-media-id="GLOBAL">
+          <div class="media-thumb-placeholder">
+            <i class="fa-solid fa-globe"></i>
+          </div>
+          <div class="media-info">
+            <span class="media-title">Global Target (Default)</span>
+            <small>Apply rules to all incoming comments across all posts</small>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Workspace Two-Column Layout -->
+    <main class="main-workspace">
+      
+      <!-- Left Column: Settings & Config Panel -->
+      <section class="config-section glass-card">
+        <div class="section-title">
+          <i class="fa-solid fa-sliders"></i>
+          <h2>Engine Configuration</h2>
+        </div>
+
+        <form id="config-form">
+          <!-- Evaluation Mode Selection -->
+          <div class="form-group">
+            <label>Evaluation Mode</label>
+            <div class="mode-selector">
+              <label class="mode-option">
+                <input type="radio" name="mode" value="ai" id="mode-ai" checked>
+                <div class="mode-card">
+                  <i class="fa-solid fa-brain"></i>
+                  <span>Gemini AI Mode</span>
+                  <small>Smart Intent Detection</small>
+                </div>
+              </label>
+
+              <label class="mode-option">
+                <input type="radio" name="mode" value="keyword" id="mode-keyword">
+                <div class="mode-card">
+                  <i class="fa-solid fa-key"></i>
+                  <span>Word / Emoji</span>
+                  <small>Specific match (e.g. 🔥, link)</small>
+                </div>
+              </label>
+
+              <label class="mode-option">
+                <input type="radio" name="mode" value="any" id="mode-any">
+                <div class="mode-card">
+                  <i class="fa-solid fa-comments"></i>
+                  <span>ANY Comment</span>
+                  <small>Trigger on every comment</small>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Keyword Trigger Input (Visible when Mode = Keyword) -->
+          <div class="form-group" id="keyword-group" style="display: none;">
+            <label for="keyword-input">Trigger Keyword / Phrase</label>
+            <div class="input-wrapper">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="keyword-input" placeholder="e.g. link, book, guide, price">
+            </div>
+            <small class="help-text">Direct DMs will trigger if comment contains this keyword.</small>
+          </div>
+
+          <!-- Custom AI Prompt -->
+          <div class="form-group" id="ai-prompt-group">
+            <label for="custom-prompt">Gemini Intent Rule / System Prompt</label>
+            <textarea id="custom-prompt" rows="3" placeholder="Instruct Gemini AI when to send a DM (e.g. 'Trigger DM if commenter asks for link, pricing, or details.')"></textarea>
+          </div>
+
+          <!-- DM Message Template -->
+          <div class="form-group">
+            <label for="dm-template">Instagram DM Message Template</label>
+            <textarea id="dm-template" rows="3" placeholder="The exact direct message sent to commenter's inbox..."></textarea>
+          </div>
+
+          <!-- Comment Reply Template -->
+          <div class="form-group">
+            <label for="reply-template">Public Comment Reply Template</label>
+            <input type="text" id="reply-template" placeholder="e.g. Sent you a DM! Check your inbox 📥✨">
+          </div>
+
+          <!-- Accordion for API Credentials -->
+          <details class="credentials-accordion">
+            <summary><i class="fa-solid fa-key"></i> API Keys & Tokens Configuration</summary>
+            
+            <div class="accordion-content">
+              <div class="form-group">
+                <label for="backend-url">Render / Webhook Backend URL</label>
+                <input type="text" id="backend-url" placeholder="https://insta-bot.onrender.com">
+              </div>
+
+              <div class="form-group">
+                <label for="meta-token">Meta Page Access Token</label>
+                <input type="password" id="meta-token" placeholder="EAAB...">
+              </div>
+
+              <div class="form-group">
+                <label for="meta-verify">Meta Webhook Verify Token</label>
+                <input type="text" id="meta-verify" placeholder="YOUR_CUSTOM_VERIFY_TOKEN">
+              </div>
+
+              <div class="form-group">
+                <label for="gemini-key">Gemini API Key</label>
+                <input type="password" id="gemini-key" placeholder="AIzaSy...">
+              </div>
+            </div>
+          </details>
+
+          <!-- Submit Button -->
+          <button type="submit" class="btn btn-primary" id="save-btn">
+            <i class="fa-solid fa-floppy-disk"></i> Save Engine Settings
+          </button>
+          
+          <div id="save-toast" class="toast hidden">
+            <i class="fa-solid fa-circle-check"></i> Settings saved to Firestore!
+          </div>
+        </form>
+      </section>
+
+      <!-- Right Column: Live Event Feed -->
+      <section class="feed-section glass-card">
+        <div class="feed-header">
+          <div class="section-title">
+            <i class="fa-solid fa-list-check"></i>
+            <h2>Live Activity Feed</h2>
+          </div>
+          
+          <div class="feed-actions">
+            <button class="btn btn-secondary btn-sm" id="test-comment-btn">
+              <i class="fa-solid fa-flask"></i> Interactive Sandbox Test
+            </button>
+          </div>
+        </div>
+
+        <!-- Feed Search & Filters -->
+        <div class="feed-filter-bar">
+          <div class="input-wrapper search-wrapper">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="feed-search-input" placeholder="Search by username, comment, or status...">
+          </div>
+
+          <div class="filter-pills">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="success">DMs Sent</button>
+            <button class="filter-btn" data-filter="ignored">No Trigger</button>
+            <button class="filter-btn" data-filter="failed">Errors</button>
+          </div>
+        </div>
+
+        <div class="feed-list" id="activity-feed">
+          <!-- Empty State -->
+          <div class="empty-feed" id="empty-feed">
+            <i class="fa-solid fa-radar fa-spin-pulse"></i>
+            <p>Waiting for incoming Instagram comments...</p>
+            <small>New comments will stream here live via Firestore.</small>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+  </div>
+
+  <!-- Scripts -->
+  <script src="firebase-config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
