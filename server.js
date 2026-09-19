@@ -1,14 +1,9 @@
-let functions;
-try {
-  functions = require('firebase-functions');
-} catch (e) {
-  // Standalone Node.js environment (Render)
-}
 const admin = require('firebase-admin');
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+require('dotenv').config();
 
 // Initialize Firebase Admin
 if (!admin.apps.length) {
@@ -30,7 +25,7 @@ async function getSettings() {
 
     return {
       enabled: data.enabled !== undefined ? data.enabled : true,
-      mode: data.mode || 'ai', // 'ai' or 'keyword'
+      mode: data.mode || 'ai', // 'ai', 'keyword', or 'any'
       keywordTrigger: data.keywordTrigger || 'link',
       customPrompt: data.customPrompt || 'Analyze if the commenter is asking for information, a link, a guide, or pricing. Respond with JSON.',
       dmTemplate: data.dmTemplate || 'Hey there! 👋 Thanks for commenting on my post! Here is the link you requested: https://example.com/info',
@@ -59,7 +54,7 @@ async function getSettings() {
  * Healthcheck route
  */
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.status(200).json({ status: 'ok', engine: 'Render Standalone Node.js', timestamp: new Date().toISOString() });
 });
 
 /**
@@ -72,7 +67,7 @@ app.get('/api/media', async (req, res) => {
       return res.status(400).json({ error: 'Meta Page Access Token is missing' });
     }
 
-    // First get Instagram Business Account ID from Page ID / Me
+    // Get Instagram Business Account ID
     const meRes = await axios.get(`https://graph.facebook.com/v19.0/me`, {
       params: {
         fields: 'id,name,instagram_business_account',
@@ -83,7 +78,6 @@ app.get('/api/media', async (req, res) => {
     let igAccountId = meRes.data.instagram_business_account ? meRes.data.instagram_business_account.id : null;
 
     if (!igAccountId) {
-      // Fallback: search accounts
       const accountsRes = await axios.get(`https://graph.facebook.com/v19.0/me/accounts`, {
         params: {
           fields: 'id,name,instagram_business_account',
@@ -167,7 +161,6 @@ app.post('/webhook', async (req, res) => {
         if (change.field === 'comments') {
           const value = change.value;
           if (value && value.id) {
-            // Process in background asynchronously
             processCommentEvent(value).catch(err => {
               console.error('Error processing comment event:', err);
             });
@@ -199,9 +192,9 @@ async function processCommentEvent(value) {
     return;
   }
 
-  const settings = await getSettings();
+  let settings = await getSettings();
 
-  // Check if there is a post-specific rule for this mediaId in post_rules collection
+  // Check post-specific rules
   let activeRule = {
     mode: settings.mode,
     keywordTrigger: settings.keywordTrigger,
@@ -302,7 +295,6 @@ Respond ONLY with a valid JSON object in this format:
         aiReasoning = parsed.reasoning || 'Evaluated by Gemini AI';
       } catch (aiErr) {
         console.error('Gemini API Error:', aiErr);
-        // Fallback safety check
         shouldSendDM = commentText.toLowerCase().includes('link') || commentText.toLowerCase().includes('info');
         aiReasoning = `Gemini API Error (${aiErr.message}). Fallback trigger evaluated.`;
       }
@@ -327,9 +319,8 @@ Respond ONLY with a valid JSON object in this format:
     executionError = 'Meta Page Access Token is missing in settings!';
     console.error(executionError);
   } else {
-    // Send Instagram Direct Message (Private Reply API / Graph API)
+    // Send Instagram Direct Message
     try {
-      // Instagram Graph API Private Reply endpoint: POST /{comment-id}/messages
       const dmUrl = `https://graph.facebook.com/v19.0/${commentId}/messages`;
       const dmPayload = {
         recipient: { comment_id: commentId },
@@ -346,7 +337,7 @@ Respond ONLY with a valid JSON object in this format:
       executionError = `DM Error: ${dmErr.response ? JSON.stringify(dmErr.response.data) : dmErr.message}`;
     }
 
-    // Reply to the Instagram Comment
+    // Reply to Instagram Comment
     if (activeRule.replyCommentTemplate && activeRule.replyCommentTemplate.trim() !== '') {
       try {
         const replyUrl = `https://graph.facebook.com/v19.0/${commentId}/replies`;
@@ -376,16 +367,7 @@ Respond ONLY with a valid JSON object in this format:
   });
 }
 
-// Export the Express API as a Firebase Cloud Function (if in Firebase environment)
-try {
-  if (functions && functions.https) {
-    exports.api = functions.https.onRequest(app);
-  }
-} catch (e) {
-  // Ignore error if running in standalone Node environment
-}
-
-// Start standalone HTTP Server for Render deployment
+// Start Standalone HTTP Server on Render
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 InstaAI Automation Webhook Server running on port ${PORT}`);
