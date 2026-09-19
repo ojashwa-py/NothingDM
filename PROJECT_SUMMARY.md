@@ -9,6 +9,32 @@
 
 ---
 
+## 🎯 Problem Statement & Solved Challenges
+
+### The Core Problem Addressed
+Instagram content creators lose high-intent leads because manually monitoring comments on viral Reels/Posts and manually messaging each user in DMs is time-consuming, prone to delays, and impossible to scale 24/7. Standard link-in-bio setups suffer from low click-through conversion rates because users leave the Reel to navigate bios.
+
+### Solved Technical & Integration Challenges
+During setup and deployment, the following specific engineering challenges were encountered and resolved:
+
+1. **Meta Webhook Verification Failure (`404 Not Found` / Token Validation):**
+   - *Problem:* Meta Developer Portal failed webhook verification because the default Firebase Hosting rewrite expected a deployed Cloud Function (`api`) on the Firebase Blaze plan.
+   - *Solution:* Deployed a standalone Node.js Express server to Render (`nothingdm.onrender.com`), handling the `GET /webhook` challenge (`hub.mode`, `hub.verify_token`, `hub.challenge`) returning `200 OK`.
+
+2. **Render Dependency Resolution (`MODULE_NOT_FOUND`):**
+   - *Problem:* Render failed to start `functions/index.js` or `server.js` due to missing `firebase-functions` and `firebase-admin` modules in the root directory.
+   - *Solution:* Updated the root `package.json` with all required runtime dependencies (`firebase-admin`, `firebase-functions`, `express`, `cors`, `axios`, `@google/generative-ai`, `dotenv`) so both entry points build seamlessly.
+
+3. **Dashboard UI JS Variable Conflict:**
+   - *Problem:* The live activity feed was stuck on *"Waiting for incoming Instagram comments..."* because of duplicate `const` element declarations in `public/app.js` blocking the script execution.
+   - *Solution:* Refactored `app.js`, cleaned up element declarations, and re-deployed to Firebase Hosting.
+
+4. **Meta Graph API Webhook Behavior in Development Mode:**
+   - *Problem:* Comments posted by the creator account itself on its own posts were not generating webhook events.
+   - *Solution:* Verified Meta Graph API policy (Meta suppresses self-comment webhooks) and configured **Instagram Testers** roles in Meta App settings to enable external account testing in Development mode.
+
+---
+
 ## 🌟 Executive Summary
 
 InstaAI Automation is a private, self-hosted AI automation tool built for Instagram content creators. It listens for incoming Instagram post/reel comments via Meta Webhooks, evaluates comment intent using Google Gemini AI or keyword rules, and automatically dispatches private direct messages (DMs) and public comment replies via Meta's Instagram Graph API (`v19.0`).
