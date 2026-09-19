@@ -36,17 +36,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const metricDms = document.getElementById('metric-dms');
   const metricMatch = document.getElementById('metric-match');
   const metricErrors = document.getElementById('metric-errors');
-  const modeAiRadio = document.getElementById('mode-ai');
-  const modeKeywordRadio = document.getElementById('mode-keyword');
   const modeAnyRadio = document.getElementById('mode-any');
-  const keywordGroup = document.getElementById('keyword-group');
   const aiPromptGroup = document.getElementById('ai-prompt-group');
-  const keywordInput = document.getElementById('keyword-input');
-  const customPromptInput = document.getElementById('custom-prompt');
 
   const fetchMediaBtn = document.getElementById('fetch-media-btn');
   const mediaGrid = document.getElementById('media-grid');
   const activeTargetBadge = document.getElementById('active-target-badge');
+  const testCommentBtn = document.getElementById('test-comment-btn');
+  const activityFeed = document.getElementById('activity-feed');
 
   let currentTargetMediaId = 'GLOBAL'; // Default to Global Target
   let currentTargetMediaTitle = 'All Posts (Global)';
