@@ -51,10 +51,18 @@ async function getSettings() {
 }
 
 /**
- * Healthcheck route
+ * Healthcheck & Compliance routes
  */
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', engine: 'Render Standalone Node.js', timestamp: new Date().toISOString() });
+});
+
+app.get('/privacy', (req, res) => {
+  res.redirect('https://ojashwa-nothing-automation.web.app/privacy.html');
+});
+
+app.get('/terms', (req, res) => {
+  res.redirect('https://ojashwa-nothing-automation.web.app/terms.html');
 });
 
 /**
