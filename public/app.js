@@ -107,9 +107,15 @@ document.addEventListener('DOMContentLoaded', () => {
   fetchMediaBtn.addEventListener('click', () => {
     fetchMediaBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Fetching...`;
 
-    const targetApiUrl = (backendUrlInput && backendUrlInput.value.trim() !== '')
-      ? `${backendUrlInput.value.trim().replace(/\/$/, '')}/api/media`
-      : '/api/media';
+    const token = metaTokenInput ? metaTokenInput.value.trim() : '';
+    let baseUrl = (backendUrlInput && backendUrlInput.value.trim() !== '')
+      ? backendUrlInput.value.trim().replace(/\/$/, '')
+      : 'https://nothingdm.onrender.com';
+
+    let targetApiUrl = `${baseUrl}/api/media`;
+    if (token) {
+      targetApiUrl += `?token=${encodeURIComponent(token)}`;
+    }
 
     fetch(targetApiUrl)
       .then(res => res.json())
@@ -117,17 +123,21 @@ document.addEventListener('DOMContentLoaded', () => {
         fetchMediaBtn.innerHTML = `<i class="fa-solid fa-arrows-rotate"></i> Fetch My Reels & Posts`;
 
         if (data.error) {
-          alert('Note: ' + data.error + '\nMake sure your Meta Access Token is saved in Settings!');
+          const detailStr = data.details ? `\n\nDetails: ${typeof data.details === 'object' ? JSON.stringify(data.details) : data.details}` : '';
+          alert(`Unable to fetch Instagram posts: ${data.error}${detailStr}\n\nTip: Paste your Meta Access Token into the Settings form and click Save Automation Rules!`);
           return;
         }
 
         const mediaItems = data.media || [];
+        if (mediaItems.length === 0) {
+          alert('No posts or reels found. Ensure your Instagram Business account has public posts.');
+        }
         renderMediaCards(mediaItems);
       })
       .catch(err => {
         fetchMediaBtn.innerHTML = `<i class="fa-solid fa-arrows-rotate"></i> Fetch My Reels & Posts`;
-        console.warn('API Error, generating demo post cards:', err);
-        // Render demo cards so user can preview and test post selection UI!
+        console.warn('API Error, rendering demo post cards:', err);
+        alert('Could not reach backend API server. Check your internet connection or backend server URL.');
         renderMediaCards([
           { id: '1798543210001', caption: '🔥 New AI Masterclass! Comment "PDF" to get the link!', media_type: 'VIDEO', permalink: '#' },
           { id: '1798543210002', caption: '✨ Top 5 Automation Tools in 2026. Comment "TOOLS"', media_type: 'IMAGE', permalink: '#' },

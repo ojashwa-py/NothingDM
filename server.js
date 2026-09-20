@@ -63,15 +63,20 @@ app.get('/health', (req, res) => {
 app.get('/api/media', async (req, res) => {
   try {
     const settings = await getSettings();
-    if (!settings.metaAccessToken) {
-      return res.status(400).json({ error: 'Meta Page Access Token is missing' });
+    const token = (req.query.token || req.headers['x-meta-token'] || settings.metaAccessToken || '').trim();
+
+    if (!token || token === 'YOUR_META_PAGE_ACCESS_TOKEN') {
+      return res.status(400).json({ 
+        error: 'Meta Page Access Token is missing',
+        details: 'Please enter your Meta Page Access Token in Settings and click Save Automation Rules.'
+      });
     }
 
     // Get Instagram Business Account ID
     const meRes = await axios.get(`https://graph.facebook.com/v19.0/me`, {
       params: {
         fields: 'id,name,instagram_business_account',
-        access_token: settings.metaAccessToken
+        access_token: token
       }
     });
 
@@ -81,7 +86,7 @@ app.get('/api/media', async (req, res) => {
       const accountsRes = await axios.get(`https://graph.facebook.com/v19.0/me/accounts`, {
         params: {
           fields: 'id,name,instagram_business_account',
-          access_token: settings.metaAccessToken
+          access_token: token
         }
       });
 
@@ -95,7 +100,10 @@ app.get('/api/media', async (req, res) => {
     }
 
     if (!igAccountId) {
-      return res.status(404).json({ error: 'No Instagram Business / Creator Account linked to this Facebook Page token.' });
+      return res.status(404).json({ 
+        error: 'No Instagram Business / Creator Account linked to this token',
+        details: 'Ensure your Instagram account is converted to Business/Creator and linked to your Facebook Page.'
+      });
     }
 
     // Fetch Recent Posts / Reels
@@ -103,7 +111,7 @@ app.get('/api/media', async (req, res) => {
       params: {
         fields: 'id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count',
         limit: 20,
-        access_token: settings.metaAccessToken
+        access_token: token
       }
     });
 
@@ -113,10 +121,13 @@ app.get('/api/media', async (req, res) => {
     });
 
   } catch (err) {
-    console.error('Error fetching Instagram media:', err.response ? err.response.data : err.message);
+    const apiError = err.response && err.response.data && err.response.data.error 
+      ? err.response.data.error.message 
+      : (err.response ? JSON.stringify(err.response.data) : err.message);
+    console.error('Error fetching Instagram media:', apiError);
     return res.status(500).json({
       error: 'Failed to fetch Instagram posts',
-      details: err.response ? err.response.data : err.message
+      details: apiError
     });
   }
 });
