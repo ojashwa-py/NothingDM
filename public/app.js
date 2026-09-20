@@ -197,14 +197,41 @@ document.addEventListener('DOMContentLoaded', () => {
   modeKeywordRadio.addEventListener('change', updateModeVisibility);
   modeAnyRadio.addEventListener('change', updateModeVisibility);
 
+  // Background Health Check Ping to Render server to wake it up from sleep
+  const defaultBackendUrl = 'https://nothingdm.onrender.com';
+  if (backendUrlInput && !backendUrlInput.value.trim()) {
+    backendUrlInput.value = defaultBackendUrl;
+  }
+
+  fetch(`${defaultBackendUrl}/health`)
+    .then(res => res.json())
+    .then(data => {
+      console.log('Backend Engine Awake & Ready:', data);
+    })
+    .catch(err => {
+      console.warn('Backend server ping notice (may be sleeping or local):', err.message);
+    });
+
   if (!db) {
     statusText.textContent = 'Firebase Config Required';
     statusPill.className = 'status-pill paused';
     return;
   }
 
+  // Safety fallback for status text if Firestore connection takes time or is blocked by adblockers
+  let isFirestoreConnected = false;
+  const connectionTimeout = setTimeout(() => {
+    if (!isFirestoreConnected && statusText.textContent === 'Connecting...') {
+      statusText.textContent = 'Ready (Sandbox / Offline)';
+      statusPill.className = 'status-pill active';
+    }
+  }, 3500);
+
   // 1. Live Sync Engine Settings from Firestore
   db.collection('settings').doc('config').onSnapshot((doc) => {
+    isFirestoreConnected = true;
+    clearTimeout(connectionTimeout);
+
     if (doc.exists) {
       const data = doc.data();
 
@@ -234,18 +261,21 @@ document.addEventListener('DOMContentLoaded', () => {
       if (data.customPrompt !== undefined) customPromptInput.value = data.customPrompt;
       if (data.dmTemplate !== undefined) dmTemplateInput.value = data.dmTemplate;
       if (data.replyCommentTemplate !== undefined) replyTemplateInput.value = data.replyCommentTemplate;
-      if (data.backendUrl !== undefined && backendUrlInput) backendUrlInput.value = data.backendUrl;
+      if (data.backendUrl !== undefined && backendUrlInput) backendUrlInput.value = data.backendUrl || defaultBackendUrl;
       if (data.metaAccessToken !== undefined) metaTokenInput.value = data.metaAccessToken;
       if (data.metaVerifyToken !== undefined) metaVerifyInput.value = data.metaVerifyToken;
       if (data.geminiApiKey !== undefined) geminiKeyInput.value = data.geminiApiKey;
     } else {
       // First time initialization
       statusText.textContent = 'New Project Setup';
+      statusPill.className = 'status-pill active';
     }
   }, (err) => {
     console.error('Settings Listener Error:', err);
-    statusText.textContent = 'Firestore Error';
-    statusPill.className = 'status-pill paused';
+    isFirestoreConnected = true;
+    clearTimeout(connectionTimeout);
+    statusText.textContent = 'Ready (Sandbox / Offline)';
+    statusPill.className = 'status-pill active';
   });
 
   // 2. Handle Master Toggle Change

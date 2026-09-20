@@ -180,7 +180,7 @@ async function processCommentEvent(value) {
   const fromUser = value.from || {};
   const userId = fromUser.id || '';
   const username = fromUser.username || 'User';
-  const mediaId = value.media ? value.media.id : '';
+  const mediaId = (value.media && value.media.id) || value.media_id || '';
 
   console.log(`Processing comment [${commentId}] from @${username}: "${commentText}"`);
 
@@ -211,10 +211,10 @@ async function processCommentEvent(value) {
         const postData = postRuleDoc.data();
         activeRule = {
           mode: postData.mode || settings.mode,
-          keywordTrigger: postData.keywordTrigger || settings.keywordTrigger,
-          customPrompt: postData.customPrompt || settings.customPrompt,
-          dmTemplate: postData.dmTemplate || settings.dmTemplate,
-          replyCommentTemplate: postData.replyCommentTemplate || settings.replyCommentTemplate,
+          keywordTrigger: postData.keywordTrigger !== undefined ? postData.keywordTrigger : settings.keywordTrigger,
+          customPrompt: postData.customPrompt !== undefined ? postData.customPrompt : settings.customPrompt,
+          dmTemplate: postData.dmTemplate !== undefined ? postData.dmTemplate : settings.dmTemplate,
+          replyCommentTemplate: postData.replyCommentTemplate !== undefined ? postData.replyCommentTemplate : settings.replyCommentTemplate,
           isPostSpecific: true
         };
         console.log(`Using Post-Specific Rule for Reel/Post [${mediaId}]`);
@@ -256,11 +256,15 @@ async function processCommentEvent(value) {
     shouldSendDM = true;
     aiReasoning = 'ANY Comment Mode active — triggered on all comments';
   } else if (activeRule.mode === 'keyword') {
-    const keyword = (activeRule.keywordTrigger || 'link').toLowerCase();
-    shouldSendDM = commentText.toLowerCase().includes(keyword);
+    const rawTrigger = activeRule.keywordTrigger || 'link';
+    const triggers = rawTrigger.split(',').map(k => k.trim().toLowerCase()).filter(Boolean);
+    const commentLower = commentText.toLowerCase();
+    
+    const matchedTrigger = triggers.find(t => commentLower.includes(t));
+    shouldSendDM = Boolean(matchedTrigger);
     aiReasoning = shouldSendDM 
-      ? `Matched keyword/emoji trigger: "${keyword}"` 
-      : `Did not contain trigger: "${keyword}"`;
+      ? `Matched keyword/emoji trigger: "${matchedTrigger}"` 
+      : `Did not contain any trigger from: "${rawTrigger}"`;
   } else {
     // AI Mode using Gemini API
     if (!settings.geminiApiKey) {
@@ -269,7 +273,7 @@ async function processCommentEvent(value) {
       aiReasoning = 'Fallback keyword check (Gemini API key missing)';
     } else {
       try {
-        const genAI = new GoogleGenerativeAI(settings.geminiApiKey);
+        const genAI = new GoogleGenerativeAI(settings.geminiApiKey.trim());
         const model = genAI.getGenerativeModel({
           model: 'gemini-1.5-flash',
           generationConfig: { responseMimeType: 'application/json' }
@@ -280,7 +284,7 @@ Task: Determine if the commenter is requesting a link, information, details, a g
 
 Comment: "${commentText}"
 
-User custom rule: "${activeRule.customPrompt}"
+User custom rule: "${activeRule.customPrompt || 'Evaluate intent for info/link'}"
 
 Respond ONLY with a valid JSON object in this format:
 {
@@ -289,7 +293,10 @@ Respond ONLY with a valid JSON object in this format:
 }`;
 
         const result = await model.generateContent(prompt);
-        const textResponse = result.response.text();
+        let textResponse = result.response.text().trim();
+        // Clean markdown code blocks if returned
+        textResponse = textResponse.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/\s*```$/, '').trim();
+
         const parsed = JSON.parse(textResponse);
         shouldSendDM = Boolean(parsed.shouldSend);
         aiReasoning = parsed.reasoning || 'Evaluated by Gemini AI';
